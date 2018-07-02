@@ -1,0 +1,274 @@
+---
+title: "HPRT1 and TK1 expression across cell lines"
+output: html_document
+---
+### Parsing Data
+The dataset is based on the Cancer Cell Line Encycolpedia (CCLE) and can be found [here](https://osf.io/gqrz9). Go to matrices -> CCLE -> CCLE_tpm.tsv.gz.
+```{r setup, include=FALSE}
+library(rmarkdown)
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+require(readr)
+library(knitr)
+```
+
+Using python to download data and parse through data. Doing so because parsing line by line is a quicker method for such a huge file rather than loading the entire data into a dataframe in R.
+```{python}
+# INCLUDE PYTHON SCRIPT HERE
+# FIXME: import requests does not work in rmarkdown script
+```
+
+Read in the trimmed data as a dataframe in R. 
+The transcript expression values are log2-transformed in order to mitigate the effects of outliers. 1 is also added to prevent errors in case there are any zero values. 
+```{r, message=FALSE, warning=FALSE}
+# Read trimmed data as dataframe
+CCLE_data <- as.data.frame(read_tsv("./transcripts_HPRT1_TK1.tsv")) 
+
+# log2 transform transcript expression values
+CCLE_data[, "Value"] <- log2(CCLE_data[, "Value"] + 1)
+
+# Function that filters data by transcript ID
+filter_by_ID <- function(df, transcriptID) {
+  filtered_data <- filter(df, TranscriptID == transcriptID)
+  return(filtered_data)
+}
+
+# Create new dataframes depending on gene and transcript ID
+# HPRT1
+HPRT1 <- filter(CCLE_data, Gene == "HPRT1")
+transcripts_HPRT1 <- unique(HPRT1$TranscriptID)  # Get transcript IDs in HPRT1
+
+df_list_HPRT1 <- character()
+for (transcript in transcripts_HPRT1) {
+  new_df <- gsub("-", "_", transcript)
+  assign(new_df, filter_by_ID(HPRT1, transcript))
+  df_list_HPRT1 <- c(df_list_HPRT1, new_df)
+}
+
+# TK1
+TK1 <- filter(CCLE_data, Gene == "TK1")
+transcripts_TK1 <- unique(TK1$TranscriptID)  # Get transcript IDs in TK1
+
+df_list_TK1 <- character()
+for (transcript in transcripts_TK1) {
+  new_df <- gsub("-", "_", transcript)
+  assign(new_df, filter_by_ID(TK1, transcript))
+  df_list_TK1 <- c(df_list_TK1, new_df)
+}
+```
+
+Performing the ANOVA and Tukey tests
+```{r}
+# ANOVA and Tukey
+
+
+do_stats_tests <- function(transcript_list, df) {
+  for (transcript in transcripts_list) {
+    name <- gsub("-", "_", transcript)                                # Replace '-' with '_'
+    anova <- paste(name, "_av", sep = "")                             # Create anova variable name
+    assign(anova, aov(Value ~ TranscriptID, data = df))               # Do ANOVA
+    tukey <- paste(name, "_tukey", sep = "")                          # Create tukey variable name
+    assign(tukey, TukeyHSD(aov(Value ~ TranscriptID, data = df)))     # Do Tukey
+  }
+}
+
+do_stats_tests(transcripts_HPRT1, HPRT1)
+  
+  
+# for (transcript in transcripts_HPRT1) {
+#   name <- gsub("-", "_", transcript)                                # Replace '-' with '_'
+#   anova <- paste(name, "_av", sep = "")                             # Create anova variable name
+#   assign(anova, aov(Value ~ TranscriptID, data = HPRT1))            # Do ANOVA
+#   tukey <- paste(name, "_tukey", sep = "")                          # Create tukey variable name
+#   assign(tukey, TukeyHSD(aov(Value ~ TranscriptID, data = HPRT1)))  # Do Tukey
+# }
+
+# #HPRT1
+# HPRT1_av <- aov(Value ~ TranscriptID, data = HPRT1)
+# HPRT1_tukey <- TukeyHSD(HPRT1_av)
+# 
+# HPRT1_001_av <- aov(Value ~ Group, data = HPRT1_001)
+# HPRT1_001_tukey <- TukeyHSD(HPRT1_001_av)
+# 
+# HPRT1_002_av <- aov(Value ~ Group, data = HPRT1_002)
+# HPRT1_002_tukey <- TukeyHSD(HPRT1_002_av)
+# 
+# HPRT1_003_av <- aov(Value ~ Group, data = HPRT1_003)
+# HPRT1_003_tukey <- TukeyHSD(HPRT1_003_av)
+
+# TK1
+TK1_av <- aov(Value ~ TranscriptID, data = TK1)
+TK1_tukey <- TukeyHSD(TK1_av)
+
+TK1_protein_av <- aov(Value ~ Group, data = TK1_protein)
+TK1_protein_tukey <- TukeyHSD(TK1_protein_av)
+
+TK1_retained_av <- aov(Value ~ Group, data = TK1_retained)
+TK1_retained_tukey <- TukeyHSD(TK1_retained_av)
+
+TK1_001_av <- aov(Value ~ Group, data = TK1_001)
+TK1_001_tukey <- TukeyHSD(TK1_001_av)
+
+TK1_002_av <- aov(Value ~ Group, data = TK1_002)
+TK1_002_tukey <- TukeyHSD(TK1_002_av)
+
+TK1_003_av <- aov(Value ~ Group, data = TK1_003)
+TK1_003_tukey <- TukeyHSD(TK1_003_av)
+
+TK1_004_av <- aov(Value ~ Group, data = TK1_004)
+TK1_004_tukey <- TukeyHSD(TK1_004_av)
+
+TK1_005_av <- aov(Value ~ Group, data = TK1_005)
+TK1_005_tukey <- TukeyHSD(TK1_005_av)
+
+TK1_006_av <- aov(Value ~ Group, data = TK1_006)
+TK1_006_tukey <- TukeyHSD(TK1_006_av)
+```
+
+Printing out p-vals from tukey test
+```{r}
+options(scipen = 999) # Keep values in numeric form instead of scientific notation
+
+# Extract p-values from HPRT1_tukey (which compares HPRT1 transcripts to each other) and write to a new file
+HPRT1_df <- data.frame(HPRT1_tukey$TranscriptID)
+HPRT1_df <- cbind(rownames(HPRT1_df), data.frame(HPRT1_df, row.names = NULL))
+colnames(HPRT1_df)[1] <- "TranscriptID"
+HPRT1_df <- HPRT1_df[,c("TranscriptID", "p.adj")]
+write.table(HPRT1_df, file = "./HPRT1_tukey.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
+
+# Function that does the same thing as above, but for tukey tests comparing groups within each transcript ID
+make_dataframe <- function(tukey_name, transcript) {
+  df_name <- data.frame(tukey_name$Group)
+  df_name <- cbind(rownames(df_name), data.frame(df_name, row.names = NULL))
+  colnames(df_name)[1] <- "Group"
+  colnames(df_name)[5] <- transcript
+  df_name <- df_name[, c("Group", transcript)]
+  return(df_name)
+}
+
+
+HPRT1_001_df <- make_dataframe(HPRT1_001_tukey, "HPRT1-001")
+HPRT1_002_df <- make_dataframe(HPRT1_002_tukey, "HPRT1-002")
+HPRT1_003_df <- make_dataframe(HPRT1_003_tukey, "HPRT1-003")
+
+list(HPRT1_001_df, HPRT1_002_df, HPRT1_003_df) %>% reduce(full_join, by = "Group")
+```
+
+
+
+```{r}
+#---
+TK1_df <- data.frame(TK1_tukey$TranscriptID)
+TK1_df <- cbind(rownames(TK1_df), data.frame(TK1_df, row.names = NULL))
+colnames(TK1_df)[1] <- "TranscriptID"
+TK1_df <- TK1_df[,c("TranscriptID", "p.adj")]
+write.table(TK1_df, file = "./TK1_tukey.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
+
+TK1_001_df <- data.frame(TK1_001_tukey$Group)
+TK1_001_df <- cbind(rownames(TK1_001_df), data.frame(TK1_001_df, row.names = NULL))
+colnames(TK1_001_df)[1] <- "Group"
+TK1_001_df <- TK1_001_df[,c("Group", "p.adj")]
+write.table(TK1_001_df, file = "./TK1_001_tukey.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
+
+TK1_002_df <- data.frame(TK1_002_tukey$Group)
+TK1_002_df <- cbind(rownames(TK1_002_df), data.frame(TK1_002_df, row.names = NULL))
+colnames(TK1_002_df)[1] <- "Group"
+TK1_002_df <- TK1_002_df[,c("Group", "p.adj")]
+write.table(TK1_002_df, file = "./TK1_002_tukey.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
+
+TK1_003_df <- data.frame(TK1_003_tukey$Group)
+TK1_003_df <- cbind(rownames(TK1_003_df), data.frame(TK1_003_df, row.names = NULL))
+colnames(TK1_003_df)[1] <- "Group"
+TK1_003_df <- TK1_003_df[,c("Group", "p.adj")]
+write.table(TK1_003_df, file = "./TK1_003_tukey.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
+
+TK1_004_df <- data.frame(TK1_004_tukey$Group)
+TK1_004_df <- cbind(rownames(TK1_004_df), data.frame(TK1_004_df, row.names = NULL))
+colnames(TK1_004_df)[1] <- "Group"
+TK1_004_df <- TK1_004_df[,c("Group", "p.adj")]
+write.table(TK1_004_df, file = "./TK1_004_tukey.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
+
+TK1_005_df <- data.frame(TK1_005_tukey$Group)
+TK1_005_df <- cbind(rownames(TK1_005_df), data.frame(TK1_005_df, row.names = NULL))
+colnames(TK1_005_df)[1] <- "Group"
+TK1_005_df <- TK1_005_df[,c("Group", "p.adj")]
+write.table(TK1_005_df, file = "./TK1_005_tukey.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
+
+TK1_006_df <- data.frame(TK1_006_tukey$Group)
+TK1_006_df <- cbind(rownames(TK1_006_df), data.frame(TK1_006_df, row.names = NULL))
+colnames(TK1_006_df)[1] <- "Group"
+TK1_006_df <- TK1_006_df[,c("Group", "p.adj")]
+write.table(TK1_006_df, file = "./TK1_006_tukey.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
+```
+
+### Plots
+Creating boxplots for all transcripts
+```{r}
+make_boxplot_combined <- function(dataframe, gene) {
+  ggplot(dataframe, aes(x = Group, y = Value, fill = Group)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+  geom_jitter(alpha = 0.3) +
+  scale_y_continuous(name = "Transcript-Level Value\n(log2 transformed)",
+                     breaks = seq(0,10,1.5)) +
+  scale_x_discrete(name = "") +
+  ggtitle(paste("Transcript Expression in", gene)) +
+  guides(fill = guide_legend(title = "Cell Line Group")) +
+  theme_bw() +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        axis.title = element_text(face = "bold"),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank()) +
+  facet_grid(. ~ TranscriptID)
+}
+
+print(make_boxplot_combined(HPRT1, "HPRT1"))
+ggsave(file="HPRT1_all.pdf", width=8)
+print(make_boxplot_combined(TK1, "TK1"))
+ggsave(file="TK1_all.pdf", width=10)
+```
+
+Creating boxplots for individual type of transcript
+```{r}
+make_boxplot_ind <- function(dataframe, transcript, type, break_size) {
+  ggplot(dataframe, aes(x = Group, y = Value, fill = Group)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+  geom_jitter(alpha = 0.3) +
+  scale_y_continuous(name = "Transcript-Level Value\n(log2 transformed)",
+                     breaks = seq(0,10,break_size)) +
+  scale_x_discrete(name = "") +
+  ggtitle(paste(transcript, " Transcript Expression (", type, ")", sep = "")) +
+  guides(fill = guide_legend(title = "Cell Line Group")) +
+  theme_bw() +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        axis.title = element_text(face = "bold"),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank())
+}
+
+print(make_boxplot_ind(HPRT1_001, "HPRT1-001", "Protein Coding", 0.5))
+ggsave(file="HPRT1_001.pdf", width=6.5)
+print(make_boxplot_ind(HPRT1_002, "HPRT1-002", "Processed Transcript", 0.25))
+ggsave(file="HPRT1_002.pdf", width=6.5)
+print(make_boxplot_ind(HPRT1_003, "HPRT1-003", "Processed Transcript", 0.5))
+ggsave(file="HPRT1_003.pdf", width=6.5)
+print(make_boxplot_ind(TK1_001, "TK1-001", "Protein Coding", 0.5))
+ggsave(file="TK1_001.pdf", width=6.5)
+print(make_boxplot_ind(TK1_002, "TK1-002", "Protein Coding", 0.5))
+ggsave(file="TK1_002.pdf", width=6.5)
+print(make_boxplot_ind(TK1_003, "TK1-003", "Retained Intron", 0.5))
+ggsave(file="TK1_003.pdf", width=6.5)
+print(make_boxplot_ind(TK1_004, "TK1-004", "Protein Coding", 0.5))
+ggsave(file="TK1_004.pdf", width=6.5)
+print(make_boxplot_ind(TK1_005, "TK1-005", "Protein Coding", 0.5))
+ggsave(file="TK1_005.pdf", width=6.5)
+print(make_boxplot_ind(TK1_006, "TK1-006", "Protein Coding", 1.5))
+ggsave(file="TK1_006.pdf", width=6.5)
+
+# save_pdf <- function(subtype, gene) {
+#   file_name <- paste(, sep="")
+#   ggsave(file_name, width=6.5)
+# }
+
+```
+
