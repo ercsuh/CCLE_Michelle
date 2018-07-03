@@ -14,9 +14,8 @@ with open("CCLE_data.tsv.gz", "wb") as tsv:
 
 # Open files for reading and writing
 CCLE_file = gzip.open("CCLE_data.tsv.gz", "r")  # File downloaded above
-lines_file = open("CCLE_celllines_wanted.tsv", "r")  # Contains the cell lines needed, categorized by group
+lines_file = open("CCLE_celllines_wanted.txt", "r")  # Contains the cell lines needed, categorized by group
 outFile = open("transcripts_HPRT1_TK1.tsv", 'w')  # File to write output to
-
 
 # Create dictionary from lines_file - {key = group : value = cell line}
 lines_dict = {}
