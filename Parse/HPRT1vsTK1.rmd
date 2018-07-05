@@ -40,6 +40,9 @@ filter_by_ID <- function(df, transcriptID) {
 HPRT1 <- filter(CCLE_data, Gene == "HPRT1")
 transcripts_HPRT1 <- unique(HPRT1$TranscriptID)  # Get transcript IDs in HPRT1
 
+HPRT1_processed <- filter(HPRT1, TranscriptType == "processed_transcript")
+HPRT1_protein <- filter(HPRT1, TranscriptType == "protein_coding")
+
 for (transcript in transcripts_HPRT1) {
   new_df <- gsub("-", "_", transcript)
   assign(new_df, filter_by_ID(HPRT1, transcript))
@@ -121,7 +124,7 @@ HPRT1_002_df <- make_dataframe(HPRT1_002_tukey, "HPRT1-002")
 HPRT1_003_df <- make_dataframe(HPRT1_003_tukey, "HPRT1-003")
 
 HPRT1_pvals <- list(HPRT1_001_df, HPRT1_002_df, HPRT1_003_df) %>% reduce(full_join, by = "Group")
-write.table(HPRT1_pvals, file = "./HPRT1_transcript_pvals.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
+# write.table(HPRT1_pvals, file = "./HPRT1_transcript_pvals.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
 
 TK1_001_df <- make_dataframe(TK1_001_tukey, "TK1-001")
 TK1_002_df <- make_dataframe(TK1_002_tukey, "TK1-002")
@@ -131,16 +134,20 @@ TK1_005_df <- make_dataframe(TK1_005_tukey, "TK1-005")
 TK1_006_df <- make_dataframe(TK1_006_tukey, "TK1-006")
 
 TK1_pvals <- list(TK1_001_df, TK1_002_df, TK1_003_df, TK1_004_df, TK1_005_df, TK1_006_df) %>% reduce(full_join, by = "Group")
-write.table(TK1_pvals, file = "./TK1_transcript_pvals.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
+# write.table(TK1_pvals, file = "./TK1_transcript_pvals.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
 ```
 
 ### Plots
 Creating boxplots for all transcripts
 ```{r}
 make_boxplot_combined <- function(dataframe, gene) {
+  set.seed(101)
   ggplot(dataframe, aes(x = Group, y = Value, fill = Group)) +
   geom_boxplot(outlier.shape = NA, alpha = 0.5) +
   geom_jitter(alpha = 0.3) +
+  geom_jitter(data = filter(dataframe, Cell_Line == "DU_145"), aes(colour = "DU_145"), alpha = 0.9) +
+  geom_jitter(data = filter(dataframe, Cell_Line == "PC-3"), aes(colour = "PC-3"), alpha = 0.9) +
+  scale_colour_hue(name = "Cell Lines", l = 50) +
   scale_y_continuous(name = "Transcript-Level Value\n(log2 transformed)",
                      breaks = seq(0,10,1.5)) +
   scale_x_discrete(name = "") +
@@ -156,10 +163,97 @@ make_boxplot_combined <- function(dataframe, gene) {
 
 print(make_boxplot_combined(HPRT1, "HPRT1"))
 ggsave(file="HPRT1_all.pdf", width=8)
-print(make_boxplot_combined(TK1, "TK1"))
-ggsave(file="TK1_all.pdf", width=10)
+# print(make_boxplot_combined(TK1, "TK1"))
+# ggsave(file="TK1_all.pdf", width=10)
 ```
 
+Creating boxplot of all transcripts combined in HPRT1. Do ANOVA and Tukey to see if there is significance between 273 mutations and WT p53 cell lines
+```{r}
+# Make boxplot
+set.seed(101)
+ggplot(HPRT1, aes(x = Group, y = Value, fill = Group)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+  geom_jitter(alpha = 0.3) +
+  geom_jitter(data = filter(HPRT1, Cell_Line == "DU_145"), aes(colour = "DU_145"), size = 1.8, alpha = 1) +
+  geom_jitter(data = filter(HPRT1, Cell_Line == "PC-3"), aes(colour = "PC-3"), size = 1.8, alpha = 1) +
+  scale_colour_hue(name = "Cell Lines", l = 45) +
+  scale_y_continuous(name = "Transcript-Level Value\n(log2 transformed)",
+                     breaks = seq(0,10,1)) +
+  scale_x_discrete(name = "") +
+  ggtitle("Transcript Expression in HPRT1") +
+  guides(fill = guide_legend(title = "Cell Line Group")) +
+  theme_bw() +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        axis.title = element_text(face = "bold"),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank())
+
+# Save plot to a pdf file
+ggsave(file="HPRT1_combined.pdf", width=8)
+
+# Do ANOVA and Tukey
+HPRT1_combined_av <- aov(Value ~ Group, data = HPRT1)
+HPRT1_combined_tukey <- TukeyHSD(HPRT1_combined_av)
+
+# Extract p-values from HPRT1_combined_tukey (which compares groups in HPRT1 to each other) and write to a new file
+HPRT1_combined_df <- data.frame(HPRT1_combined_tukey$Group)
+HPRT1_combined_df <- cbind(rownames(HPRT1_combined_df), data.frame(HPRT1_combined_df, row.names = NULL))
+colnames(HPRT1_combined_df)[1] <- "Group"
+HPRT1_combined_df <- HPRT1_combined_df[,c("Group", "p.adj")]
+write.table(HPRT1_combined_df, file = "./HPRT1_combined_pvals.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
+```
+
+Separate data by group 
+```{r}
+# Do ANOVA and Tukey
+HPRT1_combined_av <- aov(Value ~ Group, data = HPRT1)
+HPRT1_combined_tukey <- TukeyHSD(HPRT1_combined_av)
+
+# Extract p-values from HPRT1_combined_tukey (which compares groups in HPRT1 to each other) and write to a new file
+HPRT1_combined_df <- data.frame(HPRT1_combined_tukey$Group)
+HPRT1_combined_df <- cbind(rownames(HPRT1_combined_df), data.frame(HPRT1_combined_df, row.names = NULL))
+colnames(HPRT1_combined_df)[1] <- "Group"
+HPRT1_combined_df <- HPRT1_combined_df[,c("Group", "p.adj")]
+write.table(HPRT1_combined_df, file = "./HPRT1_combined_pvals.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
+```
+
+Creating boxplot of all transcripts combined in HPRT1 separated by protein coding and processed transcript. Do ANOVA and Tukey to see if there is significance between 273 mutations and WT p53 cell lines
+```{r}
+# Make boxplot
+set.seed(101)
+ggplot(HPRT1, aes(x = Group, y = Value, fill = Group)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.5) +
+  geom_jitter(alpha = 0.3) +
+  geom_jitter(data = filter(HPRT1, Cell_Line == "DU_145"), aes(colour = "DU_145"), size = 2, alpha = 0.9) +
+  geom_jitter(data = filter(HPRT1, Cell_Line == "PC-3"), aes(colour = "PC-3"), size = 2, alpha = 0.9) +
+  scale_colour_hue(name = "Cell Line", l = 45) +
+  scale_y_continuous(name = "Transcript-Level Value\n(log2 transformed)",
+                     breaks = seq(0,10,1)) +
+  scale_x_discrete(name = "") +
+  ggtitle("Transcript Expression in HPRT1") +
+  guides(fill = guide_legend(title = "Cell Line Group")) +
+  theme_bw() +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        axis.title = element_text(face = "bold"),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank()) +
+  facet_grid(. ~ TranscriptType)
+
+# Do ANOVA and Tukey
+HPRT1_processed_av <- aov(Value ~ Group, data = HPRT1_processed)
+HPRT1_processed_tukey <- TukeyHSD(HPRT1_processed_av)
+
+HPRT1_protein_av <- aov(Value ~ Group, data = HPRT1_protein)
+HPRT1_protein_tukey <- TukeyHSD(HPRT1_protein_av)
+
+# Extract p-values from HPRT1_combined_tukey (which compares groups in HPRT1 to each other) and write to a new file
+HPRT1_processed_df <- make_dataframe(HPRT1_processed_tukey, "HPRT1_processed_transcript")
+HPRT1_protein_df <- make_dataframe(HPRT1_protein_tukey, "HPRT1_protein_coding")
+
+HPRT1_pvals <- list(HPRT1_processed_df, HPRT1_protein_df) %>% reduce(full_join, by = "Group")
+write.table(HPRT1_pvals, file = "./HPRT1_transcript_types_pvals.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
+
+```
 Creating boxplots for individual type of transcript
 ```{r}
 make_boxplot_ind <- function(dataframe, transcript, type, break_size) {
@@ -188,6 +282,8 @@ print(make_boxplot_ind(HPRT1_002, "HPRT1-002", "Processed Transcript", 0.25))
 ggsave(file="HPRT1_002.pdf", width=6.5)
 print(make_boxplot_ind(HPRT1_003, "HPRT1-003", "Processed Transcript", 0.5))
 ggsave(file="HPRT1_003.pdf", width=6.5)
+
+
 # print(make_boxplot_ind(TK1_001, "TK1-001", "Protein Coding", 0.5))
 # ggsave(file="TK1_001.pdf", width=6.5)
 # print(make_boxplot_ind(TK1_002, "TK1-002", "Protein Coding", 0.5))
