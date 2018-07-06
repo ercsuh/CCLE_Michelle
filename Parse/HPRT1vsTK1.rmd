@@ -6,19 +6,15 @@ output: html_document
 The dataset is based on the Cancer Cell Line Encycolpedia (CCLE) and can be found [here](https://osf.io/gqrz9). Go to matrices -> CCLE -> CCLE_tpm.tsv.gz.
 ```{r setup, include=FALSE}
 library(rmarkdown)
-library(dplyr)
-library(ggplot2)
 library(tidyverse)
+library(ggplot2)
+library(dplyr)
 require(readr)
 library(knitr)
-library(gghighlight)
 ```
 
-Using python to download data and parse through data. Doing so because parsing line by line is a quicker method for such a huge file rather than loading the entire data into a dataframe in R.
-
-
-Read in the trimmed data as a dataframe in R. 
-The transcript expression values are log2-transformed in order to mitigate the effects of outliers. 1 is also added to prevent errors in case there are any zero values. 
+A separate python script was created to filter the CCLE data to only what we need: HPRT1 and TK1 transcripts with the appropriate cell lines for each. 
+The transcript expression values are log2-transformed to mitigate the effects of outliers. 1 is also added to prevent errors in case there are any zero values. 
 ```{r, message=FALSE, warning=FALSE}
 # Read trimmed data as dataframe
 CCLE_data <- as.data.frame(read_tsv("./transcripts_HPRT1_TK1.tsv")) 
@@ -32,13 +28,10 @@ filter_by_ID <- function(df, transcriptID) {
   return(filtered_data)
 }
 
-# Create new dataframes depending on gene and transcript ID
+# Create new dataframes based on gene and transcript ID
 # HPRT1
 HPRT1 <- filter(CCLE_data, Gene == "HPRT1")
 transcripts_HPRT1 <- unique(HPRT1$TranscriptID)  # Get transcript IDs in HPRT1
-
-HPRT1_processed <- filter(HPRT1, TranscriptType == "processed_transcript")
-HPRT1_protein <- filter(HPRT1, TranscriptType == "protein_coding")
 
 for (transcript in transcripts_HPRT1) {
   new_df <- gsub("-", "_", transcript)
@@ -55,11 +48,16 @@ for (transcript in transcripts_TK1) {
 }
 ```
 
-Performing the ANOVA and Tukey tests
-```{r}
-# ANOVA and Tukey
+### ANOVA and Tukey Tests
 
-#HPRT1
+For each transcript in both HPRT1 and TK1, multiple comparison analysis is performed using [Tukey's test](https://en.wikipedia.org/wiki/Tukey%27s_range_test).
+In each gene, we do the following tests:
+
+* In all transcripts combined, compare means between each transcript
+* In each individual transcript of the gene, compare means between each cell line group
+
+```{r}
+# HPRT1
 HPRT1_av <- aov(Value ~ TranscriptID, data = HPRT1)
 HPRT1_tukey <- TukeyHSD(HPRT1_av)
 
@@ -95,18 +93,14 @@ TK1_006_av <- aov(Value ~ Group, data = TK1_006)
 TK1_006_tukey <- TukeyHSD(TK1_006_av)
 ```
 
-Printing out p-vals from tukey test
+All p-values from the statistical analyses above are placed in the following files (by gene):
+
+* "HPRT1_transcript_pvals.tsv"
+* "TK1_transcript_pvals.tsv"
 ```{r}
 options(scipen = 999) # Keep values in numeric form instead of scientific notation
 
-# Extract p-values from HPRT1_tukey (which compares HPRT1 transcripts to each other) and write to a new file
-HPRT1_df <- data.frame(HPRT1_tukey$TranscriptID)
-HPRT1_df <- cbind(rownames(HPRT1_df), data.frame(HPRT1_df, row.names = NULL))
-colnames(HPRT1_df)[1] <- "TranscriptID"
-HPRT1_df <- HPRT1_df[,c("TranscriptID", "p.adj")]
-write.table(HPRT1_df, file = "./HPRT1_pvals.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
-
-# Function that does the same thing as above, but for tukey tests comparing groups within each transcript ID
+# Function that extracts p-values from tukey tests comparing groups within each transcript ID
 make_dataframe <- function(tukey_name, transcript) {
   df_name <- data.frame(tukey_name$Group)
   df_name <- cbind(rownames(df_name), data.frame(df_name, row.names = NULL))
@@ -134,7 +128,9 @@ TK1_pvals <- list(TK1_001_df, TK1_002_df, TK1_003_df, TK1_004_df, TK1_005_df, TK
 write.table(TK1_pvals, file = "./TK1_transcript_pvals.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
 ```
 
+# FIXME: CONTINUE CLEANING CODE FROM HERE
 ### Plots
+
 Creating boxplots for all transcripts
 ```{r}
 make_boxplot_combined <- function(dataframe, gene) {
