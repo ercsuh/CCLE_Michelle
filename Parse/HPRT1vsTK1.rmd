@@ -121,7 +121,7 @@ HPRT1_002_df <- make_dataframe(HPRT1_002_tukey, "HPRT1-002")
 HPRT1_003_df <- make_dataframe(HPRT1_003_tukey, "HPRT1-003")
 
 HPRT1_pvals <- list(HPRT1_001_df, HPRT1_002_df, HPRT1_003_df) %>% reduce(full_join, by = "Group")
-# write.table(HPRT1_pvals, file = "./HPRT1_transcript_pvals.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
+write.table(HPRT1_pvals, file = "./HPRT1_transcript_pvals.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
 
 TK1_001_df <- make_dataframe(TK1_001_tukey, "TK1-001")
 TK1_002_df <- make_dataframe(TK1_002_tukey, "TK1-002")
@@ -131,7 +131,7 @@ TK1_005_df <- make_dataframe(TK1_005_tukey, "TK1-005")
 TK1_006_df <- make_dataframe(TK1_006_tukey, "TK1-006")
 
 TK1_pvals <- list(TK1_001_df, TK1_002_df, TK1_003_df, TK1_004_df, TK1_005_df, TK1_006_df) %>% reduce(full_join, by = "Group")
-# write.table(TK1_pvals, file = "./TK1_transcript_pvals.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
+write.table(TK1_pvals, file = "./TK1_transcript_pvals.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
 ```
 
 ### Plots
@@ -161,7 +161,7 @@ make_boxplot_combined <- function(dataframe, gene) {
 print(make_boxplot_combined(HPRT1, "HPRT1"))
 ggsave(file="HPRT1_all.pdf", width=8)
 print(make_boxplot_combined(TK1, "TK1"))
-ggsave(file="TK1_all.pdf", width=15)
+ggsave(file="TK1_all.pdf", width=12)
 ```
 
 Creating boxplot of all transcripts combined in HPRT1. Do ANOVA and Tukey to see if there is significance between 273 mutations and WT p53 cell lines
@@ -281,18 +281,18 @@ print(make_boxplot_ind(HPRT1_003, "HPRT1-003", "Processed Transcript", 0.5))
 ggsave(file="HPRT1_003.pdf", width=6.5)
 
 
-# print(make_boxplot_ind(TK1_001, "TK1-001", "Protein Coding", 0.5))
-# ggsave(file="TK1_001.pdf", width=6.5)
-# print(make_boxplot_ind(TK1_002, "TK1-002", "Protein Coding", 0.5))
-# ggsave(file="TK1_002.pdf", width=6.5)
-# print(make_boxplot_ind(TK1_003, "TK1-003", "Retained Intron", 0.5))
-# ggsave(file="TK1_003.pdf", width=6.5)
-# print(make_boxplot_ind(TK1_004, "TK1-004", "Protein Coding", 0.5))
-# ggsave(file="TK1_004.pdf", width=6.5)
-# print(make_boxplot_ind(TK1_005, "TK1-005", "Protein Coding", 0.5))
-# ggsave(file="TK1_005.pdf", width=6.5)
-# print(make_boxplot_ind(TK1_006, "TK1-006", "Protein Coding", 1.5))
-# ggsave(file="TK1_006.pdf", width=6.5)
+print(make_boxplot_ind(TK1_001, "TK1-001", "Protein Coding", 0.5))
+ggsave(file="TK1_001.pdf", width=6.5)
+print(make_boxplot_ind(TK1_002, "TK1-002", "Protein Coding", 0.5))
+ggsave(file="TK1_002.pdf", width=6.5)
+print(make_boxplot_ind(TK1_003, "TK1-003", "Retained Intron", 0.5))
+ggsave(file="TK1_003.pdf", width=6.5)
+print(make_boxplot_ind(TK1_004, "TK1-004", "Protein Coding", 0.5))
+ggsave(file="TK1_004.pdf", width=6.5)
+print(make_boxplot_ind(TK1_005, "TK1-005", "Protein Coding", 0.5))
+ggsave(file="TK1_005.pdf", width=6.5)
+print(make_boxplot_ind(TK1_006, "TK1-006", "Protein Coding", 1.5))
+ggsave(file="TK1_006.pdf", width=6.5)
 
 # save_pdf <- function(subtype, gene) {
 #   file_name <- paste(, sep="")
