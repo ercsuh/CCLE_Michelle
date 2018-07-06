@@ -15,10 +15,7 @@ library(gghighlight)
 ```
 
 Using python to download data and parse through data. Doing so because parsing line by line is a quicker method for such a huge file rather than loading the entire data into a dataframe in R.
-```{python}
-# INCLUDE PYTHON SCRIPT HERE
-# FIXME: import requests does not work in rmarkdown script
-```
+
 
 Read in the trimmed data as a dataframe in R. 
 The transcript expression values are log2-transformed in order to mitigate the effects of outliers. 1 is also added to prevent errors in case there are any zero values. 
@@ -147,7 +144,7 @@ make_boxplot_combined <- function(dataframe, gene) {
   geom_jitter(alpha = 0.3) +
   geom_jitter(data = filter(dataframe, Cell_Line == "DU_145"), aes(colour = "DU_145"), alpha = 0.9) +
   geom_jitter(data = filter(dataframe, Cell_Line == "PC-3"), aes(colour = "PC-3"), alpha = 0.9) +
-  scale_colour_hue(name = "Cell Lines", l = 50) +
+  scale_colour_hue(name = "Cell Line", l = 50) +
   scale_y_continuous(name = "Transcript-Level Value\n(log2 transformed)",
                      breaks = seq(0,10,1.5)) +
   scale_x_discrete(name = "") +
@@ -163,8 +160,8 @@ make_boxplot_combined <- function(dataframe, gene) {
 
 print(make_boxplot_combined(HPRT1, "HPRT1"))
 ggsave(file="HPRT1_all.pdf", width=8)
-# print(make_boxplot_combined(TK1, "TK1"))
-# ggsave(file="TK1_all.pdf", width=10)
+print(make_boxplot_combined(TK1, "TK1"))
+ggsave(file="TK1_all.pdf", width=15)
 ```
 
 Creating boxplot of all transcripts combined in HPRT1. Do ANOVA and Tukey to see if there is significance between 273 mutations and WT p53 cell lines
@@ -261,8 +258,8 @@ make_boxplot_ind <- function(dataframe, transcript, type, break_size) {
   ggplot(dataframe, aes(x = Group, y = Value, fill = Group)) +
   geom_boxplot(outlier.shape = NA, alpha = 0.5) +
   geom_jitter(alpha=0.3) +
-  geom_jitter(data = filter(dataframe, Cell_Line == "DU_145"), aes(colour = "DU_145"), size = 2.5, alpha = 0.9) +
-  geom_jitter(data = filter(dataframe, Cell_Line == "PC-3"), aes(colour = "PC-3"), size = 2.5, alpha = 0.9) +
+  geom_jitter(data = filter(dataframe, Cell_Line == "DU_145"), aes(colour = "DU_145"), alpha = 0.9) +
+  geom_jitter(data = filter(dataframe, Cell_Line == "PC-3"), aes(colour = "PC-3"), alpha = 0.9) +
   scale_colour_hue(name = "Cell Lines", l = 40) +
   scale_y_continuous(name = "Transcript-Level Value\n(log2 transformed)",
                      breaks = seq(0,10,break_size)) +
