@@ -100,7 +100,8 @@ All p-values from the statistical analyses above are placed in the following fil
 ```{r}
 options(scipen = 999) # Keep values in numeric form instead of scientific notation
 
-# Function that extracts p-values from tukey tests comparing groups within each transcript ID
+# Function that creates a dataframe of tukey p-values
+# Dataframes needed to print p-values to a file
 make_dataframe <- function(tukey_name, transcript) {
   df_name <- data.frame(tukey_name$Group)
   df_name <- cbind(rownames(df_name), data.frame(df_name, row.names = NULL))
@@ -110,13 +111,16 @@ make_dataframe <- function(tukey_name, transcript) {
   return(df_name)
 }
 
+# Make a dataframe for each HPRT1 transcript
 HPRT1_001_df <- make_dataframe(HPRT1_001_tukey, "HPRT1-001")
 HPRT1_002_df <- make_dataframe(HPRT1_002_tukey, "HPRT1-002")
 HPRT1_003_df <- make_dataframe(HPRT1_003_tukey, "HPRT1-003")
 
+# Merge all HPRT1 dataframes and write to a file
 HPRT1_pvals <- list(HPRT1_001_df, HPRT1_002_df, HPRT1_003_df) %>% reduce(full_join, by = "Group")
 write.table(HPRT1_pvals, file = "./HPRT1_transcript_pvals.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
 
+# Make a dataframe for each TK1 transcript
 TK1_001_df <- make_dataframe(TK1_001_tukey, "TK1-001")
 TK1_002_df <- make_dataframe(TK1_002_tukey, "TK1-002")
 TK1_003_df <- make_dataframe(TK1_003_tukey, "TK1-003")
@@ -124,13 +128,13 @@ TK1_004_df <- make_dataframe(TK1_004_tukey, "TK1-004")
 TK1_005_df <- make_dataframe(TK1_005_tukey, "TK1-005")
 TK1_006_df <- make_dataframe(TK1_006_tukey, "TK1-006")
 
+# Merge all TK1 dataframes and write to a file
 TK1_pvals <- list(TK1_001_df, TK1_002_df, TK1_003_df, TK1_004_df, TK1_005_df, TK1_006_df) %>% reduce(full_join, by = "Group")
 write.table(TK1_pvals, file = "./TK1_transcript_pvals.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
 ```
 
-# FIXME: CONTINUE CLEANING CODE FROM HERE
 ### Plots
-
+The boxplots outputted by the code below illustrates transcript expression in HPRT1 and TK1. In each graph, boxplots are separated by transcript IDs
 Creating boxplots for all transcripts
 ```{r}
 make_boxplot_combined <- function(dataframe, gene) {
@@ -256,7 +260,7 @@ make_boxplot_ind <- function(dataframe, transcript, type, break_size) {
   geom_jitter(alpha=0.3) +
   geom_jitter(data = filter(dataframe, Cell_Line == "DU_145"), aes(colour = "DU_145"), alpha = 0.9) +
   geom_jitter(data = filter(dataframe, Cell_Line == "PC-3"), aes(colour = "PC-3"), alpha = 0.9) +
-  scale_colour_hue(name = "Cell Lines", l = 40) +
+  scale_colour_hue(name = "Cell Line", l = 40) +
   scale_y_continuous(name = "Transcript-Level Value\n(log2 transformed)",
                      breaks = seq(0,10,break_size)) +
   scale_x_discrete(name = "") +
